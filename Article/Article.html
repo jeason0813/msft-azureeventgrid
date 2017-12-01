@@ -1,0 +1,507 @@
+<div id="TOC"></div>
+<h1>Introduction</h1>
+<p>In this article we will explore the idea of Servless computing via the use of 
+Azure Functions which I will wire up to a Azure Event Grid custom event to do 
+some work. The demo itself is nothing special but by the end of this article I 
+would hope you would be able to craft your own events, and understand what could 
+be done with Azure Functions.</p>
+<p>&nbsp;</p>
+<h1>What Is Servless Computing?</h1>
+<h2>The promise of serverless computing</h2>
+<p><br><em>What if you could spend all your time building and deploying great 
+apps, and none of your time managing servers? Serverless computing lets you do 
+just that because the infrastructure you need to run and scale your apps is 
+managed for you. Focus your efforts on your business. Redirect resources from 
+infrastructure management into innovating and bringing apps to market faster.<br>
+<br><br>Serverless computing is the abstraction of servers, infrastructure and 
+operating systems. When you build serverless apps you don’t need to provision 
+and manage any servers, so you can take your mind off infrastructure concerns. 
+Serverless computing is driven by the reaction to events and triggers happening 
+in near-real time in the cloud. As a fully managed service, server management 
+and capacity planning are invisible to the developer and billing is based just 
+on resources consumed or the actual time your code is running.</em></p>
+<p>&nbsp;</p>
+<p>Taken from
+<a href="https://azure.microsoft.com/en-gb/overview/serverless-computing/" target="_blank">
+https://azure.microsoft.com/en-gb/overview/serverless-computing/</a> up on date 
+06/12/17</p>
+<p>&nbsp;</p>
+<h1>Where Is The Code?</h1>
+<p>The code for this article can be found here : <a href="https://github.com/sachabarber/msft-azureeventgrid" target="_blank">
+https://github.com/sachabarber/msft-azureeventgrid</a></p>
+<h1>Prerequsites</h1>
+<p>Azure Functions Tools is included in the Azure development workload of Visual 
+Studio 2017 version 15.4, or a later version. Make sure you include the Azure 
+development workload in your Visual Studio 2017 installation:</p>
+<p><img alt="" height="352" src="functions-vs-workloads.png" width="630"></p>
+<p>To create and deploy functions, you also need:</p>
+<ul>
+	<li>An active Azure subscription. If you don't have an Azure subscription, 
+	free accounts are available.</li>
+	<li>An Azure Storage account. To create a storage account, see Create a 
+	storage account.</li>
+</ul>
+<p>See this page for more details :
+<a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-develop-vs" target="_blank">
+https://docs.microsoft.com/en-us/azure/azure-functions/functions-develop-vs</a></p>
+<p>&&nbsp;</p>
+
+<h1>Why Azure Functions?</h1>
+<p><em>Azure Functions is a solution for easily running small pieces of code, or 
+&quot;functions,&quot; in the cloud. You can write just the code you need for the problem 
+at hand, without worrying about a whole application or the infrastructure to run 
+it.</em></p>
+<p><em>
+<a href="https://docs.microsoft.com/en-us/azure/azure-functions/functions-overview" target="_blank">
+https://docs.microsoft.com/en-us/azure/azure-functions/functions-overview</a>
+</em>up on date : 06/12/17</p>
+<p>Azure functions come with quite a few hooks to various other services in 
+Azure, for example there is support for these servies that could trigger your 
+Azure Function code:</p>
+<ul>
+	<li>Azure Cosmos DB</li>
+	<li>Azure Event Hubs</li>
+	<li>Azure Event Grid</li>
+	<li>Azure Mobile Apps (tables)</li>
+	<li>Azure Notification Hubs</li>
+	<li>Azure Service Bus (queues and topics)</li>
+	<li>Azure Storage (blob, queues, and tables)</li>
+	<li>GitHub (webhooks)</li>
+	<li>On-premises (using Service Bus)</li>
+	<li>Twilio (SMS messages)</li>
+</ul>
+<p>&nbsp;</p>
+<h2>Reactive Programming</h2>
+<p>&nbsp;</p>
+<p>I am a massive fan of Rx and reactive programming as a whole, and for me 
+Azure Functions also allow that type of react mindset. You send out an event, 
+and the Azure function subscribes and does something when the event occurs. This 
+is very easy to reason about, and you can have many isolated/self contained 
+functions all doing their own little bit of the puzzle, all backed up by the 
+Azure platform for scalability</p>
+<p>&nbsp;</p>
+
+<h1>Why EventGrid?</h1>
+<p>The EventGrid is the new kid on the block (at time of writing anyway), and 
+this is what Microsoft have to say about it on the home page for EventGrid
+<strong>&quot;Build reactive, event-driven apps with a fully managed event routing 
+service. Create richer app scenarios by connecting serverless logic to events 
+from multiple sources.&quot;</strong></p>
+<p>So why should we use him and not some of the already existing messaging 
+systems like ServiceBus/EventHub?</p>
+<p>I stumbled apon a great post that goes through exactly that, which I am going 
+to extract from and reference here</p>
+<p>&nbsp;</p>
+<p><strong><em>Azure Service Bus</em></strong></p>
+<p><em>When you have a shopping cart, when you’re buying stuff, and when you’re 
+moving money or material you would probably use Azure Service Bus because you 
+want transactions, you want instantaneous consistency, you want to be able to 
+have temporal control like if this is not processed in x amount of minutes then 
+dead letter it or send it somewhere else for an escalation. When you want these 
+kinds of orchestrated (workflow) stuff to do state transitions then you’ll be 
+using Azure Service Bus. It’s really like IBM MQ or BizTalk Server, however at 
+cloud scale. In a nutshell, when you need robustness and cannot afford to lose 
+any messages, you’ll go for Azure Service Bus.</em></p>
+<p>&nbsp;</p>
+<p><em><strong>Azure Event Grid</strong></em></p>
+<p><em>When you’re actually shipping and moving stuff, where you are reacting to 
+things like item has been pulled from the shelf, item was bought to postal area, 
+item has been shipped, or this shipment was rejected and so on, in this case 
+instead of doing a central control workflow you would do in an Event based model 
+running active workflows for each product item. Here you are reacting to real 
+changes in real time. Azure Event Grid is ideal for these kinds of reactive 
+scenarios. </em></p>
+<p>&nbsp;</p>
+<p><strong><em>Azure Event Hub</em></strong></p>
+<p><em>Azure Event Hub is used more for the telemetry scenarios. Let’s say if 
+every component that’s been used in the Enterprise for this e-commerce 
+application emits telemetry data like Log4Net or Log4J and you wanted to capture 
+it, then you’ll use Azure Event Hub. A great example is Azure Application 
+Insight, under the hood it uses Azure Event Hub to capture the telemetry 
+information.<br><br>Hope this helps to clarify the need for 3 different 
+messaging platforms in Microsoft Azure and when to use them appropriately. </em>
+</p>
+<p>&nbsp;</p>
+<p>All this comes from this great post : <a href="https://www.servicebus360.com/blogs/azure-service-bus-event-hub-event-grid-one-choose/" target="_blank">
+https://www.servicebus360.com/blogs/azure-service-bus-event-hub-event-grid-one-choose</a> 
+up on date 06/12/17</p>
+<p>&nbsp;</p>
+
+<h1>The Demo</h1>
+<p>Ok so now enough of the theory, what are we going to demo. Well its actually 
+fairly simple, we will provision a new EventGrid in Azure, and then create a 
+Azure Function subscriber who will react to a custom event that a Console 
+Application will send from on premise to the Auzre hosted EventGrid.</p>
+<p>That's it. Oh but we would like to be able to debug the local Console 
+Application and the Azure function locally using Visual Studio before we publish 
+the Azure Function to Azure.</p>
+<p>Simply requirements I am sure you will agree.</p>
+<p>&nbsp;</p>
+
+<h2>Provisioning An EventGrid</h2>
+<p>Before we can do anything we need an actual <code>EventGrid </code>in Azure, 
+so you will need an <strong>ACTIVE</strong> Azure account. If you have one of 
+these its simply a matter of using the portal to create a new <code>EventGrid
+</code>topic.</p>
+<p>&nbsp;</p>
+<p><a href="create1Big.png" target="_blank"><img alt="" height="253" src="create1Small.png" width="600"></a></p>
+<p><em>CLICK FOR BIGGER IMAGE</em></p>
+<p>This will take a while to provision. But when it finally is provisioned you 
+should see something like this in the portal.</p>
+<p><img alt="" height="30" src="create2Small.png" width="600"></p>
+<p>If you click this one of the things you can add <strong>Event Subscription</strong>. 
+Which allows you to wire up the <code>EventGrid </code>to other components that will react to 
+the messages pumped through the <code>EventGrid </code></p>
+<p><img alt="" height="349" src="create3Small.png" width="600"></p>
+<p>&nbsp;</p>
+<p>We will come back to this <strong>Event Subscription </strong>area when we 
+look at the Azure function in a minute</p>
+<p>&nbsp;</p>
+<h2>EventGrid Messages</h2>
+<p>When using the Azure EventGrid you can't just push out any old payload there 
+is a set schema for the messages, which you can read about here</p>
+<p><a href="https://docs.microsoft.com/en-us/azure/event-grid/event-schema">
+https://docs.microsoft.com/en-us/azure/event-grid/event-schema</a></p>
+<p>&nbsp;</p>
+<p>The following diagram illustrates the schema </p>
+<p><img alt="" height="359" src="eventProps.png" width="600"></p>
+<p>&nbsp;</p>
+<p><strong>So does that mean we can't send our own data?</strong></p>
+<p>&nbsp;</p>
+<p>No not at all, you simply have to ensure that the overall message schema 
+adheres to that specified above. Your custom data would do in the <code>data
+</code>field.</p>
+<p>Here is the message for this demo app that is used by both the Azure <code>
+EventGrid </code>and the Azure <code>Function</code>.</p>
+<pre lang="cs">
+//generic wrapper for Azure EventGrid custom event
+public class CustomEvent&lt;T&gt;
+{
+
+    public string Id { get; private set; }
+
+    public string EventType { get; set; }
+
+    public string Subject { get; set; }
+
+    public string EventTime { get; private set; }
+
+    public T Data { get; set; }
+
+    public CustomEvent()
+    {
+        Id = Guid.NewGuid().ToString();
+
+        DateTime localTime = DateTime.Now;
+        DateTime utcTime = DateTime.UtcNow;
+        DateTimeOffset localTimeAndOffset = 
+        	new DateTimeOffset(localTime, TimeZoneInfo.Local.GetUtcOffset(localTime));
+        EventTime = localTimeAndOffset.ToString("o");
+    }
+}
+
+//This is the data that will end up in the "data" field of the CustomEvent in this small demo
+public class Account
+{
+    public string Name { get; set; }
+
+    public string Gender { get; set; }
+}
+	
+</pre>
+<p>This is also a pretty important bit of information</p>
+<div style="border:medium black solid; background-color:yellow">
+<p style="margin:5px">
+Events are sent to Azure Event Grid in an array, which can contain multiple event objects. If there is only a single event, the array has a length of 1. The array can have a total size of up to 1 MB. Each event in the array is limited to 64 KB.
+</p></div>
+<p>&nbsp;</p>
+<h2>The Console Publisher</h2>
+<p>Ok so now we know how to provision an <code>EventGrid </code>and we know what 
+the messages look like, how do we send messages to the <code>EventGrid </code>we 
+have provisioned?</p>
+<p>Well that part is actually very easy we can use a simple Console Application 
+(or whatever you like), and just make sure you have a Nuget/hard reference to
+<code>Newtonsoft.Json</code> (or you own favourite JSON library)</p>
+<p>We can then simply use code like this</p>
+<pre lang="cs">
+using Msft.Event.Core;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Msft.Event
+{
+
+    class Program
+    {
+
+        static void Main(string[] args)
+        {
+            {
+                var eventNew = MakeRequestEvent();
+                eventNew.Wait();
+                Console.WriteLine(eventNew.Result.Content.ReadAsStringAsync().Result);
+            }
+            Console.ReadKey();
+        }
+
+        private static async Task&lt;HttpResponseMessage&gt; MakeRequestEvent()
+        {
+            string endpoint = "https://YOUR_ENDPOINT_HERE.westus2-1.eventgrid.azure.net/api/events";
+            var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Add("aeg-sas-key", "YOUR_KEY_HERE");
+
+            List&lt;CustomEvent&lt;Account&gt;&gt; events = new List&lt;CustomEvent&lt;Account&gt;&gt;();
+
+            var customEvent = new CustomEvent&lt;Account&gt;();
+            customEvent.EventType = "TestType";
+
+            customEvent.Subject = "Test";
+            customEvent.Data = new Account() { Name = "Maik", Gender = "Male" };
+
+            events.Add(customEvent);
+            string jsonContent = JsonConvert.SerializeObject(events);
+
+            Console.WriteLine(jsonContent);
+
+            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            return await httpClient.PostAsync(endpoint, content);
+        }
+    }
+}
+</pre>
+<p>Where you would need to find the following values from your own Azure <code>
+EventGrid </code>using the portal</p>
+<ul>
+	<li>endpoint</li>
+	<li>key</li>
+</ul>
+<p>These can be found in the <code>EventGrid </code>blade in the portal</p>
+<p><a href="key1Big.png" target="_blank"><img alt="" height="191" src="key1Small.png" width="630"></a></p>
+<p><em>CLICK FOR BIGGER IMAGE</em></p>
+<p>&nbsp;</p>
+<h2>The Function</h2>
+<p>So now onto the Azure Function. This is also fairly straight forward, we 
+simply create a new Azure Functions project in Visual Studio (if you don't see 
+this you may have to run the Visual Studio Installer and make sure you have the 
+Azure wokflow element selected)</p>
+<p><img alt="" height="318" src="func1.png" width="600"></p>
+<p>So once you have a new Azure Functions project, you can add a new Azure 
+Function to it by right clicking the project and choosing add new item as shown 
+below</p>
+<p><img alt="" height="126" src="func2.png" width="508"></p>
+<p>When you are asked choose the following options</p>
+<ul>
+	<li>Http Triggered</li>
+	<li>Anonymous Access</li>
+</ul>
+<p>After that you should see this starter code</p>
+<pre lang="cs">
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.WebJobs.Host;
+
+namespace Msft.Azure.Function
+{
+    public static class Function1
+    {
+        [FunctionName("Function1")]
+        public static async Task&lt;HttpResponseMessage&gt; Run(
+			[HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        {
+            log.Info("C# HTTP trigger function processed a request.");
+
+            // parse query parameter
+            string name = req.GetQueryNameValuePairs()
+                .FirstOrDefault(q =&gt; string.Compare(q.Key, "name", true) == 0)
+                .Value;
+
+            // Get request body
+            dynamic data = await req.Content.ReadAsAsync&lt;object&gt;();
+
+            // Set name to query string or body data
+            name = name ?? data?.name;
+
+            return name == null
+                ? req.CreateResponse(HttpStatusCode.BadRequest, "Please pass a name on the query string or in the request body")
+                : req.CreateResponse(HttpStatusCode.OK, "Hello " + name);
+        }
+    }
+}
+</pre>
+<p>Which is a fine place to start, but we want to get our function to talk to 
+the EventGrid. So lets see what the finished product looks like for the demo 
+code, which is as shown below</p>
+<pre lang="cs">
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.Azure.WebJobs.Host;
+using Msft.Event.Core;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace Msft.Azure.Function
+{
+    public static class EventGridFunction
+    {
+        //https://blogs.msdn.microsoft.com/brandonh/2017/11/30/locally-debugging-an-azure-function-triggered-by-azure-event-grid/
+        //https://docs.microsoft.com/en-us/azure/event-grid/security-authentication#webhook-event-delivery
+        [FunctionName("EventGridFunction")]
+        public static async Task&lt;HttpResponseMessage&gt; Run(
+			[HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequestMessage req, TraceWriter log)
+        {
+
+
+            var payloadFromEventGrid = JToken.ReadFrom(new JsonTextReader(new StreamReader(await req.Content.ReadAsStreamAsync())));
+            dynamic eventGridSoleItem = (payloadFromEventGrid as JArray)?.SingleOrDefault();
+            if (eventGridSoleItem == null)
+            {
+                return req.CreateErrorResponse(HttpStatusCode.BadRequest, $@"Expecting only one item in the Event Grid message");
+            }
+
+            if (eventGridSoleItem.eventType == @"Microsoft.EventGrid.SubscriptionValidationEvent")
+            {
+                log.Verbose(@"Event Grid Validation event received.");
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonConvert.SerializeObject(new
+                    {
+                        validationResponse = ((dynamic)payloadFromEventGrid)[0].data.validationCode
+                    }))
+                };
+            }
+
+
+            log.Info("C# HTTP trigger function processed a request.");
+            // Get request body
+            string data = await req.Content.ReadAsStringAsync();
+            var theEvents = JsonConvert.DeserializeObject&lt;List&lt;CustomEvent&lt;Account&gt;&gt;&gt;(data);
+
+            //TODO : handle the events in some way here
+
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonConvert.SerializeObject(new
+                {
+                    status = "good"
+                }))
+            };
+        }
+    }
+}
+</pre>
+<p>Now there is a fair bit more going on there, what is all that?</p>
+<p>Well this is due to how the subscription between the <code>EventGrid </code>
+and Azure <code>Function </code>need to work together. Your Function needs to 
+properly handle the <code>SubscriptionValidationEvent </code>sent out by Event 
+Grid when a subscription endpoint is created. You can read more about this
+<a href="create3Big.png" target="_blank">here</a></p>
+<p>In fact I did not come up with this, when I was finding out how to do this, I 
+came across this great post by one of the chaps at Microsoft that got me most of 
+the way there :
+<a href="https://blogs.msdn.microsoft.com/brandonh/2017/11/30/locally-debugging-an-azure-function-triggered-by-azure-event-grid/">
+https://blogs.msdn.microsoft.com/brandonh/2017/11/30/locally-debugging-an-azure-function-triggered-by-azure-event-grid/</a></p>
+<p>&nbsp;</p>
+<h2>Testing The Function Locally</h2>
+<p>So now we have all the peices to the puzzle we want to test it out right? So 
+lets think about that we have a local Console Application publishing events to 
+an Azure hosted <code>EventGrid</code>, and we want to use a local Azure 
+Function inside Visual Studio to subscribe to events from the Azure hosted <code>
+EventGrid</code>. So how will that work?</p>
+<p>Luckily on the post I link to above Brandon talks about a neat tool called 
+<strong>ngrok</strong> which allows a TCP tunnel to be opened up and gives you a nice endpoint 
+uri that you can then use to set in the Azure portal for the <code>EventGrid
+</code>subscription pointing to the local Azure Function for testing purposes.</p>
+<p>When launching ngrok, you have the option of specifying the port it forwards 
+to locally. For .Net Azure Functions this is, by default, <strong>7071</strong> 
+so you need to give that to <strong>ngrok</strong> when you run it</p>
+<p>This is all you need to run (in a command/PowerShell window) once you have 
+installed <strong>ngrok</strong></p>
+<pre>
+ngrok http -host-header=localhost 7071
+</pre>
+<p>But be careful</p>
+<div style="border:medium black solid; background-color:yellow">
+<p style="margin:5px">
+The <strong>ngrok</strong> command you run is session based, when the command window you used to run the 
+<strong>ngrok</strong> command dies so does that endpoint, and you will need to 
+run the command again, and update the Azure portal <code>EventGrid </code>subscription to the new 
+<strong>HTTPS</strong> uri if you close the command window.</p>
+	<p style="margin:5px">
+	&nbsp;</p>
+	<p style="margin:5px">
+	Don't forget to have your function running locally when you create the 
+	subscription, as this is needed to get the correct 200 OK back with the 
+	right payload, otherwise the EventGrid will error out and will fail to 
+	create the subscription for you and you'll have to do it again.</p></div>
+<p>With all that in place ALL you now need to do is enter the correct endpoint 
+(the <strong>HTTPS</strong> one from the <strong>ngrok</strong> command line) 
+information into the Azure EventGrid subscriptions area</p>
+<h2><a href="subsBig.png" target="_blank"><img alt="" height="449" src="subsSmal.png" width="600"></a></h2>
+<p><em>CLICK FOR BIGGER IMAGE</em></p>
+<p>&nbsp;</p>
+<p>Ok now with all that in place you should be able to run the following from 
+the demo project together</p>
+<p>&nbsp;</p>
+<ul>
+	<li>Msft.Azure.Function</li>
+	<li>Msft.Event.Console</li>
+</ul>
+<p>&nbsp;</p>
+<p>And that should just work</p>
+<p>One final note is</p>
+<p>&nbsp;</p>
+<h2>Moving To Azure</h2>
+<p>To <strong>publish</strong> the Azure function from Visual Studio you will 
+need an <strong>ACTIVE</strong> Azure account. Once you have that setup in 
+Visual Studio you should be able to see it in the Azure Cloud Explorer (under 
+the View Menu).</p>
+<p>Here is my work one</p>
+<p><img alt="" height="774" src="cloudExplorer.png" width="600"></p>
+<p>So one you have that publishing to Azure is fairly straight forward, simply 
+pick the Azure Function project, right click it and choose the <strong>Publish</strong> 
+menu</p>
+<p><img alt="" height="232" src="publish.png" width="600"></p>
+<p>Then you should choose a new profile, where you should choose <strong>Azure 
+Function App</strong> then click the <strong>publish</strong> button from the 
+dialog</p>
+<p><a href="publish2Big.png" target="_blank"><img alt="" height="414" src="publish2Small.png" width="600"></a></p>
+<p><em>CLICK FOR BIGGER IMAGE</em></p>
+<p>&nbsp;</p>
+<p>Once this has successfully published to Azure you will need to get the 
+endpoint for the function, and update the subscription asspciated with <code>
+EventGrid </code>such that the <strong>REAL</strong> cloud based <strong>Azure 
+Function</strong> is called for any new event pumped out through the <code>
+EventGrid</code>. You would grab the endpoint of the <strong>Azure Function App</strong>, and then 
+go and update the EventGrid subscription in much the same way you did above for 
+a localhost test, but you would now use the real address that you got from the 
+Azure portal for the <strong>Azure Function App</strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>Conclusion</h1>
+<p>I quite like using Azure functions for small discrete bits of work, I would 
+not use them everywhere, in fact we don't anywhere we need long running workers, 
+we are leaning towards the Azure Service Fabric for that type of thing. However 
+you simply can't overlook just how easy it is to use Azure Functions, and just 
+how many hooks there are to support them.</p>
+<p>They are worth consideration in any fture architecture you look at if you are 
+using Azure.</p>
+<p>&nbsp;</p>
+
+
+
