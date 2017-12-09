@@ -133,18 +133,18 @@ systems like ServiceBus/EventHub?</p>
 to extract from and reference here</p>
 <p>&nbsp;</p>
 <p><strong><em>Azure Service Bus</em></strong></p>
-<p><em>When you have a shopping cart, when you�re buying stuff, and when you�re 
+<p><em>When you have a shopping cart, when you're buying stuff, and when you're 
 moving money or material you would probably use Azure Service Bus because you 
 want transactions, you want instantaneous consistency, you want to be able to 
 have temporal control like if this is not processed in x amount of minutes then 
 dead letter it or send it somewhere else for an escalation. When you want these 
-kinds of orchestrated (workflow) stuff to do state transitions then you�ll be 
-using Azure Service Bus. It�s really like IBM MQ or BizTalk Server, however at 
+kinds of orchestrated (workflow) stuff to do state transitions then you'll be 
+using Azure Service Bus. It's really like IBM MQ or BizTalk Server, however at 
 cloud scale. In a nutshell, when you need robustness and cannot afford to lose 
-any messages, you�ll go for Azure Service Bus.</em></p>
+any messages, you'll go for Azure Service Bus.</em></p>
 <p>&nbsp;</p>
 <p><em><strong>Azure Event Grid</strong></em></p>
-<p><em>When you�re actually shipping and moving stuff, where you are reacting to 
+<p><em>When you're actually shipping and moving stuff, where you are reacting to 
 things like item has been pulled from the shelf, item was bought to postal area, 
 item has been shipped, or this shipment was rejected and so on, in this case 
 instead of doing a central control workflow you would do in an Event based model 
@@ -153,10 +153,10 @@ changes in real time. Azure Event Grid is ideal for these kinds of reactive
 scenarios. </em></p>
 <p>&nbsp;</p>
 <p><strong><em>Azure Event Hub</em></strong></p>
-<p><em>Azure Event Hub is used more for the telemetry scenarios. Let�s say if 
-every component that�s been used in the Enterprise for this e-commerce 
+<p><em>Azure Event Hub is used more for the telemetry scenarios. Let's say if 
+every component that's been used in the Enterprise for this e-commerce 
 application emits telemetry data like Log4Net or Log4J and you wanted to capture 
-it, then you�ll use Azure Event Hub. A great example is Azure Application 
+it, then you'll use Azure Event Hub. A great example is Azure Application 
 Insight, under the hood it uses Azure Event Hub to capture the telemetry 
 information.<br><br>Hope this helps to clarify the need for 3 different 
 messaging platforms in Microsoft Azure and when to use them appropriately. </em>
